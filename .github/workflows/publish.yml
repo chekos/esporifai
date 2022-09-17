@@ -35,6 +35,12 @@ jobs:
     - name: Run tests
       run: |
         pytest
+      env:
+        SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+        SPOTIFY_AUTH_STRING: ${{ secrets.SPOTIFY_AUTH_STRING }}
+        USERNAME: ${{ secrets.USERNAME }}
+        PASSWORD: ${{ secrets.PASSWORD }}
+        REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
   deploy:
     runs-on: ubuntu-latest
     needs: [test]
