@@ -13,4 +13,3 @@ def test_help(options):
     result = CliRunner().invoke(cli.cli, options)
     assert result.exit_code == 0
     assert "Usage: " in result.output
-    assert "--help" in result.output
