@@ -4,6 +4,18 @@ import os
 VERSION = "0.1"
 
 
+test_requirements = ["pytest>=7.0.1", "pytest-dotenv>=0.5.2"]
+jupyter_extras = ["ipywidgets==7.6.5"]
+dev_requirements = [
+    "black>=22.1.0",
+    "datasette>=0.60.2",
+    "ipykernel>=6.9.1",
+    "isort>=5.10.1",
+]
+dev_requirements.extend(test_requirements)
+dev_requirements.extend(jupyter_extras)
+
+
 def get_long_description():
     with open(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "README.md"),
@@ -31,9 +43,18 @@ setup(
         [console_scripts]
         esporifai=esporifai.cli:cli
     """,
-    install_requires=["click"],
+    install_requires=[
+        "httpx==0.23.0",
+        "playwright==1.24.1",
+        "python-dotenv==0.20.0",
+        "pytz==2022.1",
+        "rich==12.5.1",
+        "typer==0.6.1",
+    ],
     extras_require={
-        "test": ["pytest"]
+        "test": test_requirements,
+        "jupyter": jupyter_extras,
+        "dev": dev_requirements,
     },
     python_requires=">=3.7",
 )
