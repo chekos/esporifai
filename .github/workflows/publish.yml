@@ -13,14 +13,25 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
         cache-dependency-path: '**/setup.py'
+    - name: Cache playwright 
+      uses: actions/cache@v3
+      with: 
+        path: ~/.cache/ms-playwright/
+        key: ${{ runner.os }}-browsers
+    - name: Cache Spotify info
+      uses: actions/cache@v3
+      with: 
+        path: ~/.config/esporifai
+        key: ${{ runner.os }}-spotify
     - name: Install dependencies
       run: |
         pip install -e '.[test]'
+        playwright install chromium
     - name: Run tests
       run: |
         pytest
@@ -28,9 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.10'
         cache: pip
