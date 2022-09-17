@@ -23,6 +23,15 @@ You can also use:
 
     python -m esporifai --help
 
+### Recently played tracks
+To retrieve recently played tracks, run:
+
+    esporifai get-recently-played
+
+For help,
+
+    esporifai get-recently-played --help
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
