@@ -72,14 +72,3 @@ def get_user_recently_played(
     response = httpx.get(url=url, params=params, headers=headers)
 
     return response
-
-
-if __name__ == "__main__":
-    token_info = handle_authorization(save_files=True)
-    response = get_user_top_items(
-        token_info["access_token"],
-        item_type="artists",
-        limit=20,
-        time_range="medium_term",
-    )
-    handle_response(response, write=True, filename="top_20_artists_medium_term.json")
