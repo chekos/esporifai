@@ -4,6 +4,28 @@ from .constants import SPOTIFY_API_BASE_URL
 from .utils import handle_authorization, handle_response
 
 
+def get_track_audio_analysis(
+    access_token: str,
+    track_id: str,
+):
+    """Get a low-level audio analysis for a track in the Spotify catalog.
+    The audio analysis describes the track's structure and musical content, including rhythm, pitch, and timbre.
+
+    Parameters
+    ----------
+    access_token : str
+        Access token for authenticated user
+    track_id : str
+        Track's ID.
+    """
+    url = f"{SPOTIFY_API_BASE_URL}/audio-analysis/{track_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = httpx.get(url=url, headers=headers)
+
+    return response
+
+
 def get_user_top_items(
     access_token: str,
     item_type: str,
