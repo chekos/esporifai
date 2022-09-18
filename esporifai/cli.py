@@ -6,7 +6,7 @@ import typer
 from rich import print
 from pytz import timezone
 
-from .api import get_user_top_items, get_user_recently_played
+from .api import get_track_audio_analysis, get_user_top_items, get_user_recently_played
 from .constants import (
     APP_DIR,
     GetTopItems,
@@ -111,6 +111,35 @@ def get_recently_played(
 
     if output == Path("-"):
         print(json.dumps(data, default=str))
+
+
+@cli.command()
+def analyze_track(
+    track_id: str,
+    output: Path = typer.Option(
+        "output.json",
+        "--output",
+        "-o",
+        help="File to write output to.",
+        allow_dash=True,
+    ),
+):
+    response = handle_response(
+        get_track_audio_analysis(
+            access_token=token_info["access_token"],
+            track_id=track_id,
+        )
+    )
+
+    data = handle_data(response, output)
+
+    if output == Path("-"):
+        typer.echo(
+            json.dumps(
+                data,
+                default=str,
+            )
+        )
 
 
 if __name__ == "__main__":
