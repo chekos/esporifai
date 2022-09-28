@@ -2,6 +2,48 @@ import httpx
 
 from .constants import SPOTIFY_API_BASE_URL
 
+
+def get_track(
+    access_token: str,
+    track_id: str,
+):
+    """Get Spotify catalog information for a single track identified by its unique Spotify ID.
+
+    Parameters
+    ----------
+    access_token : str
+        Access token for authenticated user
+    artist_id : str
+        Track's ID.
+    """
+    url = f"{SPOTIFY_API_BASE_URL}/tracks/{track_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = httpx.get(url=url, headers=headers)
+
+    return response
+
+def get_several_tracks(
+    access_token: str,
+    track_ids: list,
+):
+    """Get Spotify catalog information for multiple tracks based on their Spotify IDs.
+
+    Parameters
+    ----------
+    access_token : str
+        Access token for authenticated user
+    artist_id : str
+        Track's ID.
+    """
+    url = f"{SPOTIFY_API_BASE_URL}/tracks"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    query_params = {"ids": ",".join(track_ids)}
+
+    response = httpx.get(url=url, headers=headers, params=query_params)
+
+    return response
+
 def get_artist(
     access_token: str,
     artist_id: str,
