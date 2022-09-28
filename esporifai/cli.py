@@ -1,12 +1,19 @@
 from pathlib import Path
 from datetime import datetime as dt
 import json
+from typing import List
 
 import typer
 from rich import print
 from pytz import timezone
 
-from .api import get_track_audio_analysis, get_user_top_items, get_user_recently_played
+from .api import (
+    get_track_audio_analysis,
+    get_user_top_items,
+    get_user_recently_played,
+    get_artist,
+    get_several_artists,
+)
 from .constants import (
     APP_DIR,
     GetTopItems,
@@ -130,6 +137,46 @@ def analyze_track(
             track_id=track_id,
         )
     )
+
+    data = handle_data(response, output)
+
+    if output == Path("-"):
+        typer.echo(
+            json.dumps(
+                data,
+                default=str,
+            )
+        )
+
+
+@cli.command()
+def get_artists(
+    artists_ids: List[str] = typer.Option(
+        ...,
+        "--id",
+    ),
+    output: Path = typer.Option(
+        "output.json",
+        "--output",
+        "-o",
+        help="File to write output to.",
+        allow_dash=True,
+    ),
+):
+    if len(artists_ids) == 1:
+        response = handle_response(
+            get_artist(
+                access_token=token_info["access_token"],
+                artist_id=artists_ids[0],
+            )
+        )
+    else:
+        response = handle_response(
+            get_several_artists(
+                access_token=token_info["access_token"],
+                artist_ids=artists_ids,
+            )
+        )
 
     data = handle_data(response, output)
 

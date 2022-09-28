@@ -1,8 +1,47 @@
 import httpx
 
 from .constants import SPOTIFY_API_BASE_URL
-from .utils import handle_authorization, handle_response
 
+def get_artist(
+    access_token: str,
+    artist_id: str,
+):
+    """Get Spotify catalog information for a single artist identified by their unique Spotify ID.
+
+    Parameters
+    ----------
+    access_token : str
+        Access token for authenticated user
+    artist_id : str
+        Track's ID.
+    """
+    url = f"{SPOTIFY_API_BASE_URL}/artists/{artist_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = httpx.get(url=url, headers=headers)
+
+    return response
+
+def get_several_artists(
+    access_token: str,
+    artist_ids: list,
+):
+    """Get Spotify catalog information for a single artist identified by their unique Spotify ID.
+
+    Parameters
+    ----------
+    access_token : str
+        Access token for authenticated user
+    artist_id : str
+        Track's ID.
+    """
+    url = f"{SPOTIFY_API_BASE_URL}/artists"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    query_params = {"ids": ",".join(artist_ids)}
+
+    response = httpx.get(url=url, headers=headers, params=query_params)
+
+    return response
 
 def get_track_audio_analysis(
     access_token: str,
