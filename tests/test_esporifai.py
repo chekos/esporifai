@@ -49,3 +49,30 @@ def test_get_artists():
     artists = output["artists"]
     assert artists[0]["name"] == "La Plebada"
     assert artists[1]["name"] == "La Banda Baston"
+
+
+def test_get_track():
+    result = CliRunner().invoke(
+        cli.cli, "get-tracks --id 4hPl8CtzHoh9LMmKTFyiPl --output -"
+    )
+    output = json.loads(result.output)
+    assert result.exit_code == 0
+    assert output["name"] == "Lupe Esparza"
+    assert output["artists"][0]["name"] == "La Banda Baston"
+
+
+def test_get_tracks():
+    result = CliRunner().invoke(
+        cli.cli,
+        "get-tracks --id 4hPl8CtzHoh9LMmKTFyiPl --id 2O8aEi9SpwobvFLvKHvIl3 --output -",
+    )
+    output = json.loads(result.output)
+    assert result.exit_code == 0
+    assert "tracks" in output.keys()
+    assert len(output["tracks"]) == 2
+    tracks = output["tracks"]
+    assert tracks[0]["name"] == "Lupe Esparza"
+    assert tracks[1]["name"] == "Estamos Bien"
+    assert len(tracks[0]["artists"]) == 2
+    assert tracks[0]["artists"][0]["name"] == "La Banda Baston"
+    assert tracks[0]["artists"][1]["name"] == "Primero Company"

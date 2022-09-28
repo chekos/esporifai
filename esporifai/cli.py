@@ -13,6 +13,8 @@ from .api import (
     get_user_recently_played,
     get_artist,
     get_several_artists,
+    get_track,
+    get_several_tracks,
 )
 from .constants import (
     APP_DIR,
@@ -175,6 +177,46 @@ def get_artists(
             get_several_artists(
                 access_token=token_info["access_token"],
                 artist_ids=artists_ids,
+            )
+        )
+
+    data = handle_data(response, output)
+
+    if output == Path("-"):
+        typer.echo(
+            json.dumps(
+                data,
+                default=str,
+            )
+        )
+
+
+@cli.command()
+def get_tracks(
+    track_ids: List[str] = typer.Option(
+        ...,
+        "--id",
+    ),
+    output: Path = typer.Option(
+        "output.json",
+        "--output",
+        "-o",
+        help="File to write output to.",
+        allow_dash=True,
+    ),
+):
+    if len(track_ids) == 1:
+        response = handle_response(
+            get_track(
+                access_token=token_info["access_token"],
+                track_id=track_ids[0],
+            )
+        )
+    else:
+        response = handle_response(
+            get_several_tracks(
+                access_token=token_info["access_token"],
+                track_ids=track_ids,
             )
         )
 
