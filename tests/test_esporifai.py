@@ -18,7 +18,9 @@ def test_help(options):
 
 
 def test_get_analyze_track():
-    result = runner.invoke(cli.cli, "analyze-track 4hPl8CtzHoh9LMmKTFyiPl --output -")
+    result = runner.invoke(
+        cli.cli, ["analyze-track", "4hPl8CtzHoh9LMmKTFyiPl", "--output", "-"]
+    )
     output = json.loads(result.output)
     assert result.exit_code == 0
     assert "track" in output.keys()
@@ -28,7 +30,7 @@ def test_get_analyze_track():
 
 def test_get_artist():
     result = runner.invoke(
-        cli.cli, "get-artists --id 4RtYPfT9hi1qBolEuVArOG --output -"
+        cli.cli, ["get-artists", "--id", "4RtYPfT9hi1qBolEuVArOG", "--output", "-"]
     )
     output = json.loads(result.output)
     assert result.exit_code == 0
@@ -38,7 +40,15 @@ def test_get_artist():
 def test_get_artists():
     result = runner.invoke(
         cli.cli,
-        "get-artists --id 4RtYPfT9hi1qBolEuVArOG --id 3vV4Tf1iC8vEP9fLOLGUfP --output -",
+        [
+            "get-artists",
+            "--id",
+            "4RtYPfT9hi1qBolEuVArOG",
+            "--id",
+            "3vV4Tf1iC8vEP9fLOLGUfP",
+            "--output",
+            "-",
+        ],
     )
     output = json.loads(result.output)
     assert result.exit_code == 0
@@ -51,7 +61,7 @@ def test_get_artists():
 
 def test_get_track():
     result = CliRunner().invoke(
-        cli.cli, "get-tracks --id 4hPl8CtzHoh9LMmKTFyiPl --output -"
+        cli.cli, ["get-tracks", "--id", "4hPl8CtzHoh9LMmKTFyiPl", "--output", "-"]
     )
     output = json.loads(result.output)
     assert result.exit_code == 0
@@ -62,7 +72,15 @@ def test_get_track():
 def test_get_tracks():
     result = CliRunner().invoke(
         cli.cli,
-        "get-tracks --id 4hPl8CtzHoh9LMmKTFyiPl --id 2O8aEi9SpwobvFLvKHvIl3 --output -",
+        [
+            "get-tracks",
+            "--id",
+            "4hPl8CtzHoh9LMmKTFyiPl",
+            "--id",
+            "2O8aEi9SpwobvFLvKHvIl3",
+            "--output",
+            "-",
+        ],
     )
     output = json.loads(result.output)
     assert result.exit_code == 0
