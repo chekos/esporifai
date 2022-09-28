@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = "0.1"
+VERSION = "0.2"
 
 
 test_requirements = ["pytest>=7.0.1", "pytest-dotenv>=0.5.2"]
