@@ -60,7 +60,7 @@ def test_get_artists():
 
 
 def test_get_track():
-    result = CliRunner().invoke(
+    result = runner.invoke(
         cli.cli, ["get-tracks", "--id", "4hPl8CtzHoh9LMmKTFyiPl", "--output", "-"]
     )
     output = json.loads(result.output)
@@ -70,7 +70,7 @@ def test_get_track():
 
 
 def test_get_tracks():
-    result = CliRunner().invoke(
+    result = runner.invoke(
         cli.cli,
         [
             "get-tracks",
