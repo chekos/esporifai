@@ -37,6 +37,7 @@ jobs:
     - name: Run tests
       if: hashFiles('setup.py')
       run: |
+        esporifai --help
         pytest
       env:
         SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
