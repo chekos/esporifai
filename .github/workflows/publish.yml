@@ -43,7 +43,7 @@ jobs:
         REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
   deploy:
     runs-on: ubuntu-latest
-    needs: [test]
+    # needs: [test]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
