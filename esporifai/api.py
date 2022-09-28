@@ -68,7 +68,7 @@ def get_several_artists(
     access_token: str,
     artist_ids: list,
 ):
-    """Get Spotify catalog information for a single artist identified by their unique Spotify ID.
+    """Get Spotify catalog information for several artists based on their Spotify IDs.
 
     Parameters
     ----------
