@@ -27,13 +27,16 @@ jobs:
     - name: Cache Spotify info
       uses: actions/cache@v3
       with: 
-        path: ~/.config/esporifai-v2
+        path: ~/.config/esporifai
         key: ${{ runner.os }}-spotify
     - name: Install dependencies
       if: hashFiles('setup.py')
       run: |
         pip install -e '.[test]'
         playwright install chromium
+    - name: Top Artist
+      run: |
+        esporifai get-top artists --limit 1 --trim --output - | jq '.[0].name'
     - name: Run tests
       if: hashFiles('setup.py')
       run: |
