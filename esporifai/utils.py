@@ -29,7 +29,7 @@ def is_expired(expires_at):
 
 def retrieve_code(write: bool = False):
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(slow_mo=10)
         context = browser.new_context()
         page = context.new_page()
         page.goto(AUTH_CODE_URL)
