@@ -37,6 +37,12 @@ jobs:
     - name: Top Artist
       run: |
         esporifai get-top artists --limit 1 --trim --output - | jq '.[0].name'
+      env:
+        SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+        SPOTIFY_AUTH_STRING: ${{ secrets.SPOTIFY_AUTH_STRING }}
+        USERNAME: ${{ secrets.USERNAME }}
+        PASSWORD: ${{ secrets.PASSWORD }}
+        REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
     - name: Run tests
       if: hashFiles('setup.py')
       run: |
