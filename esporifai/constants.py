@@ -16,7 +16,7 @@ try:
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 
-__app_name__ = "spotify-git-scraper"
+__app_name__ = "esporifai"
 APP_DIR: Path = Path(get_app_dir(__app_name__))
 
 AUTH_FILE = APP_DIR.joinpath("auth.json")
