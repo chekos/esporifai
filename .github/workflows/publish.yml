@@ -26,7 +26,7 @@ jobs:
     - name: Cache Spotify info
       uses: actions/cache@v3
       with: 
-        path: ~/.config/esporifai-v2
+        path: ~/.config/esporifai
         key: ${{ runner.os }}-spotify
     - name: Install dependencies
       run: |
@@ -34,6 +34,7 @@ jobs:
         playwright install chromium
     - name: Run tests
       run: |
+        esporifai get-top artists --limit 1 --trim --output - | jq '.[0].name'
         pytest
       env:
         SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
