@@ -28,7 +28,7 @@ jobs:
       uses: actions/cache@v3
       with: 
         path: ~/.config/esporifai
-        key: ${{ runner.os }}-spotify
+        key: ${{ runner.os }}-spotify-v2
     - name: Install dependencies
       if: hashFiles('setup.py')
       run: |
