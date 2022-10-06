@@ -42,7 +42,7 @@ def retrieve_code(write: bool = False):
             page.locator("[data-testid=auth-accept]").click(timeout=3_000)
         except:
             pass
-        page.wait_for_url(f"{REDIRECT_URI}**", timeout=60_000)
+        page.wait_for_url(f"{REDIRECT_URI}**", timeout=90_000)
 
         # Authorized page
         auth = {}
