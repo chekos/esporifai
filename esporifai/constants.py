@@ -2,6 +2,7 @@ import os
 import urllib.parse
 from enum import Enum
 from pathlib import Path
+from hashlib import blake2b
 
 from dotenv import dotenv_values
 from typer import get_app_dir
@@ -27,6 +28,9 @@ CLIENT_ID = config["SPOTIFY_CLIENT_ID"]
 REDIRECT_URI = config["REDIRECT_URI"]
 USERNAME = config["USERNAME"]
 PASSWORD = config["PASSWORD"]
+ESPORIFAI_ID = blake2b(
+    f"{USERNAME}:{PASSWORD}".encode("utf-8"), digest_size=13
+).hexdigest()
 SCOPE = "user-read-recently-played user-top-read user-library-read playlist-read-collaborative playlist-read-private user-follow-read"
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"

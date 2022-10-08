@@ -19,7 +19,14 @@ from .constants import (
     USERNAME,
     __app_name__,
     __version__,
+    ESPORIFAI_ID,
 )
+
+
+def auth_check(user_id: str = ESPORIFAI_ID):
+    with open(AUTH_FILE, "r") as auth_file:
+        auth_file = json.load(auth_file)
+    return bool(auth_file.get(user_id))
 
 
 def is_expired(expires_at):
@@ -29,7 +36,7 @@ def is_expired(expires_at):
 
 def retrieve_code(write: bool = False):
     with sync_playwright() as p:
-        browser = p.chromium.launch(slow_mo=100)
+        browser = p.chromium.launch(slow_mo=300)
         context = browser.new_context()
         page = context.new_page()
         page.goto(AUTH_CODE_URL)
@@ -45,16 +52,16 @@ def retrieve_code(write: bool = False):
         page.wait_for_url(f"{REDIRECT_URI}**", timeout=90_000)
 
         # Authorized page
-        auth = {}
-        auth["code"] = page.url.split("code=")[-1]
-        auth["scope"] = SCOPE
+        auth = {ESPORIFAI_ID: {}}
+        auth[ESPORIFAI_ID]["code"] = page.url.split("code=")[-1]
+        auth[ESPORIFAI_ID]["scope"] = SCOPE
 
         if write:
 
             with open(AUTH_FILE, "w") as auth_file:
                 json.dump(auth, auth_file)
 
-        return auth
+        return auth[ESPORIFAI_ID]
 
 
 def request_token(
@@ -77,9 +84,11 @@ def request_token(
         seconds=int(response_data["expires_in"])
     )
 
+    token_data = {ESPORIFAI_ID: response_data}
+
     if write:
         with open(TOKEN_FILE, "w") as token_file:
-            json.dump(response_data, token_file, default=str)
+            json.dump(token_data, token_file, default=str)
 
     return response_data
 
@@ -104,9 +113,11 @@ def refresh_token(
     )
     response_data["refresh_token"] = refresh_token
 
+    token_data = {ESPORIFAI_ID: response_data}
+
     if write:
         with open(TOKEN_FILE, "w") as token_file:
-            json.dump(response_data, token_file, default=str)
+            json.dump(token_data, token_file, default=str)
 
     return response_data
 
@@ -119,20 +130,30 @@ def handle_authorization(save_files: bool = False, force: bool = False):
 
     if AUTH_FILE.exists():
         with open(AUTH_FILE, "r") as auth_file:
-            auth = json.load(auth_file)
+            auth_file = json.load(auth_file)
 
-        if auth["scope"] != SCOPE:
-            # need new code
+        if ESPORIFAI_ID in auth_file.keys():
+            auth = auth_file[ESPORIFAI_ID]
+            if auth["scope"] != SCOPE:
+                # need new code
+                auth = retrieve_code(write=save_files)
+        else:
             auth = retrieve_code(write=save_files)
     else:
         auth = retrieve_code(write=save_files)
 
     if TOKEN_FILE.exists():
         with open(TOKEN_FILE, "r") as token_file:
-            token_info = json.load(token_file)
+            token_info_file = json.load(token_file)
 
-        if is_expired(token_info["expires_at"]):
-            token_info = refresh_token(token_info["refresh_token"], write=save_files)
+        if ESPORIFAI_ID in token_info_file.keys():
+            token_info = token_info_file[ESPORIFAI_ID]
+            if is_expired(token_info["expires_at"]):
+                token_info = refresh_token(
+                    token_info["refresh_token"], write=save_files
+                )
+        else:
+            token_info = request_token(auth["code"], write=save_files)
     else:
         token_info = request_token(auth["code"], write=save_files)
 

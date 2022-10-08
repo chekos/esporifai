@@ -24,7 +24,7 @@ from .constants import (
     __version__,
     __app_name__,
 )
-from .utils import handle_authorization, handle_response, handle_data
+from .utils import auth_check, handle_authorization, handle_response, handle_data
 
 
 def init():
@@ -35,6 +35,21 @@ def init():
 
 
 cli = typer.Typer(callback=init)
+
+
+@cli.command()
+def auth(
+    force: bool = typer.Option(False, "--force", help="Force authorization flow"),
+    check: bool = typer.Option(
+        False, "--check", help="Check if auth credentials are saved."
+    ),
+):
+    if check:
+        print(auth_check())
+        return None
+
+    global token_info
+    token_info = handle_authorization(save_files=True, force=force)
 
 
 @cli.command()
