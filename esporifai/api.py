@@ -23,6 +23,7 @@ def get_track(
 
     return response
 
+
 def get_several_tracks(
     access_token: str,
     track_ids: list,
@@ -44,6 +45,7 @@ def get_several_tracks(
 
     return response
 
+
 def get_artist(
     access_token: str,
     artist_id: str,
@@ -63,6 +65,7 @@ def get_artist(
     response = httpx.get(url=url, headers=headers)
 
     return response
+
 
 def get_several_artists(
     access_token: str,
@@ -84,6 +87,7 @@ def get_several_artists(
     response = httpx.get(url=url, headers=headers, params=query_params)
 
     return response
+
 
 def get_track_audio_analysis(
     access_token: str,
