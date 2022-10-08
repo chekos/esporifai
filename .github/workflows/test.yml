@@ -40,7 +40,7 @@ jobs:
         playwright install chromium
     - name: Auth check
       run: |
-        if [ esporifai auth --check ]
+        if [ "$(esporifai auth --check)" ]
           then
               echo "Credentials already present."
           else
