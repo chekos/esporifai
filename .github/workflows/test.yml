@@ -20,6 +20,7 @@ jobs:
         cache: pip
         cache-dependency-path: '**/setup.py'
     - name: Cache playwright 
+      id: cache-playwright
       uses: actions/cache@v3
       with: 
         path: ~/.cache/ms-playwright/
@@ -33,10 +34,18 @@ jobs:
       if: hashFiles('setup.py')
       run: |
         pip install -e '.[test]'
+    - name: Install Chromium
+      if: steps.cache-playwright.outputs.cache-hit != 'true'
         playwright install chromium
-    - name: Top Artist
+    - name: Auth check
       run: |
-        esporifai get-top artists --limit 1 --trim --output - | jq '.[0].name'
+        if [ esporifai auth --check ]
+          then
+              echo "Credentials already present."
+          else
+              echo "Authorizing"
+              esporifai auth --force
+        fi
       env:
         SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
         SPOTIFY_AUTH_STRING: ${{ secrets.SPOTIFY_AUTH_STRING }}
