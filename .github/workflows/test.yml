@@ -36,6 +36,7 @@ jobs:
         pip install -e '.[test]'
     - name: Install Chromium
       if: steps.cache-playwright.outputs.cache-hit != 'true'
+      run: |
         playwright install chromium
     - name: Auth check
       run: |
