@@ -1,3 +1,4 @@
+import re
 import json
 from datetime import datetime as dt
 from datetime import timedelta
@@ -185,3 +186,17 @@ def handle_data(
             json.dump(data, file, indent=2, default=str)
 
     return data
+
+
+def handle_id_file(filepath: Path):
+    spotify_id_re = re.compile("[a-zA-Z0-9]{22}")
+    with open(filepath, "r") as file:
+        contents = file.readlines()
+
+    ids = []
+    for line in contents:
+        _id = spotify_id_re.findall(line)
+        if len(_id) > 0:
+            ids.append(_id[0])
+
+    return ids

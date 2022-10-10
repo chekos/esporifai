@@ -24,7 +24,13 @@ from .constants import (
     __version__,
     __app_name__,
 )
-from .utils import auth_check, handle_authorization, handle_response, handle_data
+from .utils import (
+    auth_check,
+    handle_authorization,
+    handle_id_file,
+    handle_response,
+    handle_data,
+)
 
 
 def init():
@@ -139,7 +145,9 @@ def get_recently_played(
 
 @cli.command()
 def analyze_track(
-    track_id: str,
+    track_id: str = typer.Argument(
+        ..., help="Spotify track ID. Use '-' if providing a file with IDs."
+    ),
     output: Path = typer.Option(
         "output.json",
         "--output",
@@ -147,23 +155,55 @@ def analyze_track(
         help="File to write output to.",
         allow_dash=True,
     ),
+    file: Path = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="A newline-delimited file with a list of track IDs. One per line.",
+    ),
 ):
-    response = handle_response(
-        get_track_audio_analysis(
-            access_token=token_info["access_token"],
-            track_id=track_id,
-        )
-    )
-
-    data = handle_data(response, output)
-
-    if output == Path("-"):
-        typer.echo(
-            json.dumps(
-                data,
-                default=str,
+    if track_id != "-":
+        response = handle_response(
+            get_track_audio_analysis(
+                access_token=token_info["access_token"],
+                track_id=track_id,
             )
         )
+
+        data = handle_data(response, output)
+
+        if output == Path("-"):
+            typer.echo(
+                json.dumps(
+                    data,
+                    default=str,
+                )
+            )
+    else:
+        if (file.suffix == ".txt") | (file.suffix == ".csv"):
+            ids = handle_id_file(file)
+            for _id in ids:
+                response = handle_response(
+                    get_track_audio_analysis(
+                        access_token=token_info["access_token"],
+                        track_id=_id,
+                    )
+                )
+                if output == Path("-"):
+                    data = handle_data(response, output)
+                    typer.echo(
+                        json.dumps(
+                            data,
+                            default=str,
+                        )
+                    )
+                else:
+                    if output.is_dir():
+                        data = handle_data(response, output.joinpath(f"{_id}.json"))
+                    else:
+                        data = handle_data(response, Path(f"{_id}.json"))
+        else:
+            print("Provide a .txt or .csv file with one ID per line.")
 
 
 @cli.command()
