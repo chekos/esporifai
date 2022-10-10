@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -17,7 +18,7 @@ def test_help(options):
     assert "Usage: " in result.output
 
 
-def test_get_analyze_track():
+def test_analyze_track():
     result = runner.invoke(
         cli.cli, ["analyze-track", "4hPl8CtzHoh9LMmKTFyiPl", "--output", "-"]
     )
@@ -26,6 +27,31 @@ def test_get_analyze_track():
     assert "track" in output.keys()
     assert "meta" in output.keys()
     assert "sections" in output.keys()
+
+
+def test_analyze_tracks(tmp_path):
+    track_ids_file = tmp_path.joinpath("track_ids.txt")
+    with open(track_ids_file, "w") as file:
+        file.write("2pEa0vCzu86pDLz9KPDAcg\n")  # Alivianado
+        file.write("2O8aEi9SpwobvFLvKHvIl3\n")  # Estamos Bien
+        file.write("1XReTPKaJypMIXSvOW9YXV\n")  # Semillas
+    runner.invoke(
+        cli.cli,
+        [
+            "analyze-track",
+            "-",
+            "--file",
+            f"{track_ids_file}",
+            "--output",
+            f"{tmp_path}",
+        ],
+    )
+    analysis_files = sorted([file.name for file in tmp_path.glob("*.json")])
+    assert analysis_files == [
+        "1XReTPKaJypMIXSvOW9YXV.json",
+        "2O8aEi9SpwobvFLvKHvIl3.json",
+        "2pEa0vCzu86pDLz9KPDAcg.json",
+    ]
 
 
 def test_get_artist():
