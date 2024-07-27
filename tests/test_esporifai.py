@@ -118,3 +118,59 @@ def test_get_tracks():
     assert len(tracks[0]["artists"]) == 2
     assert tracks[0]["artists"][0]["name"] == "La Banda Baston"
     assert tracks[0]["artists"][1]["name"] == "Primero Company"
+
+
+def test_get_audio_features():
+    result = runner.invoke(
+        cli.cli,
+        [
+            "get-audio-features",
+            "--id",
+            "4hPl8CtzHoh9LMmKTFyiPl",
+            "--id",
+            "2O8aEi9SpwobvFLvKHvIl3",
+            "--output",
+            "-",
+        ],
+    )
+    output = json.loads(result.output)
+    assert result.exit_code == 0
+    assert "audio_features" in output.keys()
+    assert len(output["audio_features"]) == 2
+    audio_features = output["audio_features"]
+    assert audio_features[0]["id"] == "4hPl8CtzHoh9LMmKTFyiPl"
+    assert "danceability" in audio_features[0].keys()
+    assert "energy" in audio_features[0].keys()
+    assert "key" in audio_features[0].keys()
+    assert "loudness" in audio_features[0].keys()
+    assert "mode" in audio_features[0].keys()
+    assert "speechiness" in audio_features[0].keys()
+    assert "acousticness" in audio_features[0].keys()
+    assert "instrumentalness" in audio_features[0].keys()
+    assert "liveness" in audio_features[0].keys()
+    assert "valence" in audio_features[0].keys()
+    assert "tempo" in audio_features[0].keys()
+    assert "type" in audio_features[0].keys()
+    assert "uri" in audio_features[0].keys()
+    assert "track_href" in audio_features[0].keys()
+    assert "analysis_url" in audio_features[0].keys()
+    assert "duration_ms" in audio_features[0].keys()
+    assert "time_signature" in audio_features[0].keys()
+    assert audio_features[1]["id"] == "2O8aEi9SpwobvFLvKHvIl3"
+    assert "danceability" in audio_features[1].keys()
+    assert "energy" in audio_features[1].keys()
+    assert "key" in audio_features[1].keys()
+    assert "loudness" in audio_features[1].keys()
+    assert "mode" in audio_features[1].keys()
+    assert "speechiness" in audio_features[1].keys()
+    assert "acousticness" in audio_features[1].keys()
+    assert "instrumentalness" in audio_features[1].keys()
+    assert "liveness" in audio_features[1].keys()
+    assert "valence" in audio_features[1].keys()
+    assert "tempo" in audio_features[1].keys()
+    assert "type" in audio_features[1].keys()
+    assert "uri" in audio_features[1].keys()
+    assert "track_href" in audio_features[1].keys()
+    assert "analysis_url" in audio_features[1].keys()
+    assert "duration_ms" in audio_features[1].keys()
+    assert "time_signature" in audio_features[1].keys()
