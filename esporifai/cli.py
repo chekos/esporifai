@@ -15,6 +15,8 @@ from .api import (
     get_several_artists,
     get_track,
     get_several_tracks,
+    get_track_audio_features,
+    get_several_tracks_audio_features,
 )
 from .constants import (
     APP_DIR,
@@ -270,6 +272,47 @@ def get_tracks(
     else:
         response = handle_response(
             get_several_tracks(
+                access_token=token_info["access_token"],
+                track_ids=track_ids,
+            )
+        )
+
+    data = handle_data(response, output)
+
+    if output == Path("-"):
+        typer.echo(
+            json.dumps(
+                data,
+                default=str,
+            )
+        )
+
+
+# Command for getting audio features of one or more tracks
+@cli.command()
+def get_audio_features(
+    track_ids: List[str] = typer.Option(
+        ...,
+        "--id",
+    ),
+    output: Path = typer.Option(
+        "output.json",
+        "--output",
+        "-o",
+        help="File to write output to.",
+        allow_dash=True,
+    ),
+):
+    if len(track_ids) == 1:
+        response = handle_response(
+            get_track_audio_features(
+                access_token=token_info["access_token"],
+                track_id=track_ids[0],
+            )
+        )
+    else:
+        response = handle_response(
+            get_several_tracks_audio_features(
                 access_token=token_info["access_token"],
                 track_ids=track_ids,
             )

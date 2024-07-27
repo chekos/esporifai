@@ -179,3 +179,46 @@ def get_user_recently_played(
     response = httpx.get(url=url, params=params, headers=headers)
 
     return response
+
+
+def get_track_audio_features(
+    access_token: str,
+    track_id: str,
+):
+    """Get audio features for a single track identified by its unique Spotify ID.
+
+    Parameters
+    ----------
+    access_token : str
+        Access token for authenticated user
+    track_id : str
+        Track's ID.
+    """
+    url = f"{SPOTIFY_API_BASE_URL}/audio-features/{track_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = httpx.get(url=url, headers=headers)
+
+    return response
+
+
+def get_several_tracks_audio_features(
+    access_token: str,
+    track_ids: list,
+):
+    """Get audio features for multiple tracks based on their Spotify IDs.
+
+    Parameters
+    ----------
+    access_token : str
+        Access token for authenticated user
+    track_ids : list
+        List of track IDs.
+    """
+    url = f"{SPOTIFY_API_BASE_URL}/audio-features"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    query_params = {"ids": ",".join(track_ids)}
+
+    response = httpx.get(url=url, headers=headers, params=query_params)
+
+    return response
