@@ -58,7 +58,6 @@ def retrieve_code(write: bool = False):
         auth[ESPORIFAI_ID]["scope"] = SCOPE
 
         if write:
-
             with open(AUTH_FILE, "w") as auth_file:
                 json.dump(auth, auth_file)
 

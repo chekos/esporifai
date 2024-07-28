@@ -42,7 +42,7 @@ def init():
     token_info = handle_authorization(save_files=True)
 
 
-cli = typer.Typer(callback=init)
+cli = typer.Typer(callback=init, help=f"""{__app_name__} version {__version__}""")
 
 
 @cli.command()
@@ -294,6 +294,7 @@ def get_audio_features(
     track_ids: List[str] = typer.Option(
         ...,
         "--id",
+        help="Spotify track ID(s). Use '-' if providing a file with IDs.",
     ),
     output: Path = typer.Option(
         "output.json",
@@ -302,31 +303,63 @@ def get_audio_features(
         help="File to write output to.",
         allow_dash=True,
     ),
+    file: Path = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="A newline-delimited file with a list of track IDs. One per line.",
+    ),
 ):
-    if len(track_ids) == 1:
-        response = handle_response(
-            get_track_audio_features(
-                access_token=token_info["access_token"],
-                track_id=track_ids[0],
+    if track_ids[0] != "-":
+        if len(track_ids) == 1:
+            response = handle_response(
+                get_track_audio_features(
+                    access_token=token_info["access_token"],
+                    track_id=track_ids[0],
+                )
             )
-        )
+        else:
+            response = handle_response(
+                get_several_tracks_audio_features(
+                    access_token=token_info["access_token"],
+                    track_ids=track_ids,
+                )
+            )
+
+        data = handle_data(response, output)
+
+        if output == Path("-"):
+            typer.echo(
+                json.dumps(
+                    data,
+                    default=str,
+                )
+            )
     else:
-        response = handle_response(
-            get_several_tracks_audio_features(
-                access_token=token_info["access_token"],
-                track_ids=track_ids,
-            )
-        )
-
-    data = handle_data(response, output)
-
-    if output == Path("-"):
-        typer.echo(
-            json.dumps(
-                data,
-                default=str,
-            )
-        )
+        if (file.suffix == ".txt") | (file.suffix == ".csv"):
+            ids = handle_id_file(file)
+            for _id in ids:
+                response = handle_response(
+                    get_track_audio_features(
+                        access_token=token_info["access_token"],
+                        track_id=_id,
+                    )
+                )
+                if output == Path("-"):
+                    data = handle_data(response, output)
+                    typer.echo(
+                        json.dumps(
+                            data,
+                            default=str,
+                        )
+                    )
+                else:
+                    if output.is_dir():
+                        data = handle_data(response, output.joinpath(f"{_id}.json"))
+                    else:
+                        data = handle_data(response, Path(f"{_id}.json"))
+        else:
+            print("Provide a .txt or .csv file with one ID per line.")
 
 
 if __name__ == "__main__":
