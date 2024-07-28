@@ -42,7 +42,7 @@ def init():
     token_info = handle_authorization(save_files=True)
 
 
-cli = typer.Typer(callback=init)
+cli = typer.Typer(callback=init, help=f"""{__app_name__} version {__version__}""")
 
 
 @cli.command()
