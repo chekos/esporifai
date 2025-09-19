@@ -56,5 +56,5 @@ setup(
         "jupyter": jupyter_extras,
         "dev": dev_requirements,
     },
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
