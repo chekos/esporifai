@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = "0.2.3"
+VERSION = "0.2.4"
 
 
 test_requirements = ["pytest>=7.0.1", "pytest-dotenv>=0.5.2"]
@@ -45,7 +45,7 @@ setup(
     """,
     install_requires=[
         "httpx==0.23.0",
-        "playwright==1.24.1",
+        "playwright>=1.40.0",
         "python-dotenv==0.20.0",
         "pytz==2022.1",
         "rich==12.5.1",
