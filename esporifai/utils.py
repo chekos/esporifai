@@ -37,12 +37,21 @@ def write_json(path: Path, payload: dict):
         json.dump(payload, handle, indent=2, default=str)
 
 
+def build_auth_payload(code: str, settings: Settings | None = None) -> dict:
+    settings = settings or get_settings()
+    return {
+        settings.user_id: {
+            "code": code,
+            "scope": SCOPE,
+        }
+    }
+
+
 def build_auth_code_url(settings: Settings) -> str:
     return (
         f"{SPOTIFY_AUTH_URL}?"
         + urlencode(
             {
-                "allow_password": "1",
                 "client_id": settings.spotify_client_id,
                 "redirect_uri": settings.redirect_uri,
                 "scope": SCOPE,
@@ -76,6 +85,7 @@ def get_auth_status(settings: Settings | None = None) -> dict:
         "token_file": str(TOKEN_FILE),
         "has_auth_artifact": bool(auth_file.get(settings.user_id)),
         "has_token_artifact": bool(token_info),
+        "has_refresh_token_env": bool(settings.spotify_refresh_token),
         "token_expires_at": token_info.get("expires_at") if token_info else None,
         "token_expired": is_expired(token_info["expires_at"]) if token_info else None,
     }
@@ -105,6 +115,60 @@ def maybe_click_consent(page) -> bool:
         return True
 
     return False
+
+
+def maybe_switch_to_password_login(page) -> bool:
+    candidates = [
+        page.get_by_role(
+            "link",
+            name=re.compile(
+                r"(log ?in|login).*(with|using).*(password)|password instead",
+                re.I,
+            ),
+        ).first,
+        page.get_by_role(
+            "button",
+            name=re.compile(
+                r"(log ?in|login).*(with|using).*(password)|password instead",
+                re.I,
+            ),
+        ).first,
+    ]
+
+    for candidate in candidates:
+        try:
+            candidate.wait_for(timeout=500)
+        except PlaywrightTimeoutError:
+            continue
+
+        candidate.click()
+        return True
+
+    return False
+
+
+def wait_for_password_input(page, settings: Settings):
+    password_selector = (
+        "#password, [data-testid='login-password'], "
+        "input[type='password'], input[autocomplete='current-password']"
+    )
+    deadline = monotonic() + (settings.login_timeout_ms / 1_000)
+
+    while monotonic() < deadline:
+        password = page.locator(password_selector).first
+        try:
+            password.wait_for(timeout=500)
+            return password
+        except PlaywrightTimeoutError:
+            if maybe_switch_to_password_login(page):
+                continue
+
+            page.wait_for_timeout(500)
+
+    raise RuntimeError(
+        "Spotify did not present a password entry screen within "
+        f"{settings.login_timeout_ms}ms. " + describe_page_state(page)
+    )
 
 
 def describe_page_state(page) -> str:
@@ -140,6 +204,11 @@ def describe_page_state(page) -> str:
 
 def retrieve_code(write: bool = False, settings: Settings | None = None):
     settings = settings or get_settings()
+    if not settings.username or not settings.password:
+        raise ConfigError(
+            "Browser authorization requires USERNAME/PASSWORD or SPOTIFY_USERNAME/SPOTIFY_PASSWORD."
+        )
+
     with sync_playwright() as p:
         browser = p.chromium.launch(slow_mo=settings.browser_slow_mo_ms)
         context = browser.new_context()
@@ -148,25 +217,14 @@ def retrieve_code(write: bool = False, settings: Settings | None = None):
             page.goto(build_auth_code_url(settings), wait_until="domcontentloaded")
 
             username_selector = "#username, [data-testid='login-username']"
-            password_selector = (
-                "#password, [data-testid='login-password'], "
-                "input[type='password'], input[autocomplete='current-password']"
-            )
             login_button_selector = "[data-testid='login-button']"
 
             username = page.locator(username_selector).first
             username.wait_for(timeout=settings.login_timeout_ms)
             username.fill(settings.username)
-            password = page.locator(password_selector).first
+            page.locator(login_button_selector).first.click()
 
-            try:
-                # `allow_password=1` restores the classic one-page password form.
-                password.wait_for(timeout=2_000)
-            except PlaywrightTimeoutError:
-                # Fallback for Spotify's alternate two-step login flow.
-                page.locator(login_button_selector).first.click()
-                password.wait_for(timeout=settings.login_timeout_ms)
-
+            password = wait_for_password_input(page, settings)
             password.fill(settings.password)
             page.locator(login_button_selector).first.click()
 
@@ -281,6 +339,19 @@ def handle_authorization(
 ):
     settings = settings or get_settings()
     if force:
+        token_info = load_json(TOKEN_FILE).get(settings.user_id)
+        if settings.spotify_refresh_token:
+            return refresh_token(
+                settings.spotify_refresh_token,
+                write=save_files,
+                settings=settings,
+            )
+        if token_info and token_info.get("refresh_token"):
+            return refresh_token(
+                token_info["refresh_token"],
+                write=save_files,
+                settings=settings,
+            )
         auth = retrieve_code(write=save_files, settings=settings)
         token_info = request_token(auth["code"], write=save_files, settings=settings)
         return token_info
@@ -295,6 +366,13 @@ def handle_authorization(
                 write=save_files,
                 settings=settings,
             )
+
+    if settings.spotify_refresh_token:
+        return refresh_token(
+            settings.spotify_refresh_token,
+            write=save_files,
+            settings=settings,
+        )
 
     auth = load_json(AUTH_FILE).get(settings.user_id)
     if auth and auth.get("scope") == SCOPE:

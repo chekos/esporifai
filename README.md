@@ -45,14 +45,27 @@ Required environment variables:
     SPOTIFY_CLIENT_ID=...
     SPOTIFY_AUTH_STRING=...
     REDIRECT_URI=...
-    USERNAME=...
-    PASSWORD=...
+    USERNAME=...  # or SPOTIFY_USERNAME
+    PASSWORD=...  # or SPOTIFY_PASSWORD
+
+For stable automation, prefer a long-lived refresh token:
+
+    SPOTIFY_REFRESH_TOKEN=...
 
 Useful auth commands:
 
     esporifai auth --check
     esporifai auth --status
+    esporifai auth --url
+    esporifai auth --code <authorization-code>
     esporifai auth --force
+
+`esporifai` will use auth in this order:
+
+    1. cached access token
+    2. cached refresh token
+    3. SPOTIFY_REFRESH_TOKEN from the environment
+    4. browser login flow
 
 Optional runtime tuning:
 

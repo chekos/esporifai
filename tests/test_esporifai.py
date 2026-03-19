@@ -57,6 +57,38 @@ def test_auth_check_without_saved_files_returns_false(monkeypatch, tmp_path):
     assert utils.auth_check() is False
 
 
+def test_settings_accept_spotify_username_password_aliases(monkeypatch):
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("SPOTIFY_AUTH_STRING", "auth-string")
+    monkeypatch.setenv("REDIRECT_URI", "https://example.com/callback")
+    monkeypatch.setenv("SPOTIFY_USERNAME", "sergio")
+    monkeypatch.setenv("SPOTIFY_PASSWORD", "secret")
+    monkeypatch.delenv("USERNAME", raising=False)
+    monkeypatch.delenv("PASSWORD", raising=False)
+
+    settings = get_settings()
+
+    assert settings.username == "sergio"
+    assert settings.password == "secret"
+
+
+def test_settings_accept_refresh_token_without_password_credentials(monkeypatch):
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("SPOTIFY_AUTH_STRING", "auth-string")
+    monkeypatch.setenv("REDIRECT_URI", "https://example.com/callback")
+    monkeypatch.setenv("SPOTIFY_REFRESH_TOKEN", "refresh-token")
+    monkeypatch.delenv("USERNAME", raising=False)
+    monkeypatch.delenv("PASSWORD", raising=False)
+    monkeypatch.delenv("SPOTIFY_USERNAME", raising=False)
+    monkeypatch.delenv("SPOTIFY_PASSWORD", raising=False)
+
+    settings = get_settings()
+
+    assert settings.spotify_refresh_token == "refresh-token"
+    assert settings.username is None
+    assert settings.password is None
+
+
 def test_auth_check_command_skips_authorization(monkeypatch):
     def fail(*args, **kwargs):
         raise AssertionError("handle_authorization should not run for auth --check")
@@ -71,7 +103,7 @@ def test_auth_check_command_skips_authorization(monkeypatch):
     assert "True" in result.output
 
 
-def test_build_auth_code_url_prefers_password_login(monkeypatch):
+def test_build_auth_code_url_uses_standard_authorize_query(monkeypatch):
     monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
     monkeypatch.setenv("SPOTIFY_AUTH_STRING", "auth-string")
     monkeypatch.setenv("REDIRECT_URI", "https://example.com/callback")
@@ -80,7 +112,8 @@ def test_build_auth_code_url_prefers_password_login(monkeypatch):
 
     url = utils.build_auth_code_url(get_settings())
 
-    assert "allow_password=1" in url
+    assert "client_id=client-id" in url
+    assert "redirect_uri=https%3A%2F%2Fexample.com%2Fcallback" in url
     assert "response_type=code" in url
 
 
@@ -125,8 +158,16 @@ def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
             self.calls.append(("locator", selector))
             return FakeLocator(self, selector)
 
+        def get_by_role(self, role, name=None):
+            selector = f"{role}:{getattr(name, 'pattern', name)}"
+            self.calls.append(("get_by_role", selector))
+            return FakeLocator(self, selector)
+
         def wait_for_url(self, pattern, timeout=None):
             self.calls.append(("wait_for_url", pattern, timeout))
+
+        def wait_for_timeout(self, timeout):
+            self.calls.append(("wait_for_timeout", timeout))
 
     class FakeContext:
         def __init__(self, page):
@@ -190,8 +231,12 @@ def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
     assert (
         "wait_for",
         "#password, [data-testid='login-password'], input[type='password'], input[autocomplete='current-password']",
-        2_000,
+        500,
     ) in page.calls
+    assert any(
+        call[0] == "get_by_role" and "password" in call[1].lower()
+        for call in page.calls
+    )
     assert (
         "fill",
         "#password, [data-testid='login-password'], input[type='password'], input[autocomplete='current-password']",
@@ -225,6 +270,56 @@ def test_auth_status_reports_saved_token(monkeypatch, tmp_path):
     assert status["has_auth_artifact"] is True
     assert status["has_token_artifact"] is True
     assert status["token_expired"] is False
+
+
+def test_handle_authorization_prefers_refresh_token_env(monkeypatch):
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("SPOTIFY_AUTH_STRING", "auth-string")
+    monkeypatch.setenv("REDIRECT_URI", "https://example.com/callback")
+    monkeypatch.setenv("SPOTIFY_REFRESH_TOKEN", "refresh-token")
+    monkeypatch.delenv("USERNAME", raising=False)
+    monkeypatch.delenv("PASSWORD", raising=False)
+    monkeypatch.delenv("SPOTIFY_USERNAME", raising=False)
+    monkeypatch.delenv("SPOTIFY_PASSWORD", raising=False)
+
+    monkeypatch.setattr(utils, "load_json", lambda path: {})
+    monkeypatch.setattr(
+        utils,
+        "refresh_token",
+        lambda refresh_token, write=False, settings=None: {
+            "access_token": "token",
+            "refresh_token": refresh_token,
+        },
+    )
+
+    token_info = utils.handle_authorization(save_files=False, force=False)
+
+    assert token_info["refresh_token"] == "refresh-token"
+
+
+def test_handle_authorization_force_still_prefers_refresh_token_env(monkeypatch):
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("SPOTIFY_AUTH_STRING", "auth-string")
+    monkeypatch.setenv("REDIRECT_URI", "https://example.com/callback")
+    monkeypatch.setenv("SPOTIFY_REFRESH_TOKEN", "refresh-token")
+    monkeypatch.delenv("USERNAME", raising=False)
+    monkeypatch.delenv("PASSWORD", raising=False)
+    monkeypatch.delenv("SPOTIFY_USERNAME", raising=False)
+    monkeypatch.delenv("SPOTIFY_PASSWORD", raising=False)
+
+    monkeypatch.setattr(utils, "load_json", lambda path: {})
+    monkeypatch.setattr(
+        utils,
+        "refresh_token",
+        lambda refresh_token, write=False, settings=None: {
+            "access_token": "token",
+            "refresh_token": refresh_token,
+        },
+    )
+
+    token_info = utils.handle_authorization(save_files=False, force=True)
+
+    assert token_info["refresh_token"] == "refresh-token"
 
 
 @integration

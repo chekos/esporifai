@@ -35,6 +35,7 @@ jobs:
     env:
       SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
       SPOTIFY_AUTH_STRING: ${{ secrets.SPOTIFY_AUTH_STRING }}
+      SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
       USERNAME: ${{ secrets.USERNAME }}
       PASSWORD: ${{ secrets.PASSWORD }}
       REDIRECT_URI: ${{ secrets.REDIRECT_URI }}

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from pathlib import Path
 from datetime import datetime as dt
 import json
-from typing import List
+from typing import List, Optional
 from zoneinfo import ZoneInfo
 
 import typer
@@ -29,12 +31,17 @@ from .constants import (
 )
 from .utils import (
     auth_check,
+    build_auth_code_url,
+    build_auth_payload,
     get_auth_status,
     handle_authorization,
     handle_id_file,
     handle_response,
     handle_data,
+    request_token,
+    write_json,
 )
+from .constants import AUTH_FILE
 
 
 token_info = None
@@ -68,6 +75,14 @@ def auth(
     status: bool = typer.Option(
         False, "--status", help="Show the current auth artifact and token status."
     ),
+    url: bool = typer.Option(
+        False, "--url", help="Print the Spotify authorization URL for manual login."
+    ),
+    code: Optional[str] = typer.Option(
+        None,
+        "--code",
+        help="Exchange a Spotify authorization code without browser automation.",
+    ),
 ):
     if check:
         print(auth_check())
@@ -75,6 +90,19 @@ def auth(
 
     if status:
         print(json.dumps(get_auth_status(), indent=2, default=str))
+        return None
+
+    if url:
+        print(build_auth_code_url(get_settings()))
+        return None
+
+    if code:
+        settings = get_settings()
+        write_json(AUTH_FILE, build_auth_payload(code, settings=settings))
+        token = request_token(code, write=True, settings=settings)
+        global token_info
+        token_info = token
+        print(json.dumps(get_auth_status(settings=settings), indent=2, default=str))
         return None
 
     ensure_token_info(force=force)

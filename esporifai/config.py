@@ -29,8 +29,9 @@ class Settings:
     spotify_client_id: str
     spotify_auth_string: str
     redirect_uri: str
-    username: str
-    password: str
+    username: str | None
+    password: str | None
+    spotify_refresh_token: str | None = None
     request_timeout_seconds: float = 30.0
     browser_slow_mo_ms: int = 300
     login_timeout_ms: int = 30_000
@@ -39,20 +40,35 @@ class Settings:
 
     @property
     def user_id(self) -> str:
+        identity = (
+            f"{self.username}:{self.password}"
+            if self.username and self.password
+            else self.spotify_refresh_token or self.spotify_client_id
+        )
         return blake2b(
-            f"{self.username}:{self.password}".encode("utf-8"),
+            identity.encode("utf-8"),
             digest_size=13,
         ).hexdigest()
 
     @classmethod
     def from_env(cls) -> "Settings":
         config = _load_environment()
+        username = config.get("USERNAME") or config.get("SPOTIFY_USERNAME")
+        password = config.get("PASSWORD") or config.get("SPOTIFY_PASSWORD")
+        spotify_refresh_token = config.get("SPOTIFY_REFRESH_TOKEN")
+
+        if spotify_refresh_token is None and not (username and password):
+            raise ConfigError(
+                "Missing required configuration: USERNAME/PASSWORD or SPOTIFY_REFRESH_TOKEN"
+            )
+
         return cls(
             spotify_client_id=_require(config, "SPOTIFY_CLIENT_ID"),
             spotify_auth_string=_require(config, "SPOTIFY_AUTH_STRING"),
             redirect_uri=_require(config, "REDIRECT_URI"),
-            username=_require(config, "USERNAME"),
-            password=_require(config, "PASSWORD"),
+            username=username,
+            password=password,
+            spotify_refresh_token=spotify_refresh_token,
             request_timeout_seconds=float(
                 config.get("ESPORIFAI_REQUEST_TIMEOUT_SECONDS", "30.0")
             ),
