@@ -41,6 +41,7 @@ def build_auth_code_url(settings: Settings) -> str:
         f"{SPOTIFY_AUTH_URL}?"
         + urlencode(
             {
+                "allow_password": "1",
                 "client_id": settings.spotify_client_id,
                 "redirect_uri": settings.redirect_uri,
                 "scope": SCOPE,
@@ -93,19 +94,28 @@ def retrieve_code(write: bool = False, settings: Settings | None = None):
         try:
             page.goto(build_auth_code_url(settings), wait_until="domcontentloaded")
 
-            # Spotify now uses a two-step login flow:
-            # username/email first, then password on the next screen.
-            username = page.locator("#username, [data-testid='login-username']").first
+            username_selector = "#username, [data-testid='login-username']"
+            password_selector = (
+                "#password, [data-testid='login-password'], "
+                "input[type='password'], input[autocomplete='current-password']"
+            )
+            login_button_selector = "[data-testid='login-button']"
+
+            username = page.locator(username_selector).first
             username.wait_for(timeout=settings.login_timeout_ms)
             username.fill(settings.username)
-            page.locator("[data-testid='login-button']").first.click()
+            password = page.locator(password_selector).first
 
-            password = page.locator(
-                "#password, [data-testid='login-password'], input[type='password']"
-            ).first
-            password.wait_for(timeout=settings.login_timeout_ms)
+            try:
+                # `allow_password=1` restores the classic one-page password form.
+                password.wait_for(timeout=2_000)
+            except PlaywrightTimeoutError:
+                # Fallback for Spotify's alternate two-step login flow.
+                page.locator(login_button_selector).first.click()
+                password.wait_for(timeout=settings.login_timeout_ms)
+
             password.fill(settings.password)
-            page.locator("[data-testid='login-button']").first.click()
+            page.locator(login_button_selector).first.click()
 
             try:
                 auth_accept = page.locator("[data-testid='auth-accept']").first

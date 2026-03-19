@@ -71,6 +71,19 @@ def test_auth_check_command_skips_authorization(monkeypatch):
     assert "True" in result.output
 
 
+def test_build_auth_code_url_prefers_password_login(monkeypatch):
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("SPOTIFY_AUTH_STRING", "auth-string")
+    monkeypatch.setenv("REDIRECT_URI", "https://example.com/callback")
+    monkeypatch.setenv("USERNAME", "sergio")
+    monkeypatch.setenv("PASSWORD", "secret")
+
+    url = utils.build_auth_code_url(get_settings())
+
+    assert "allow_password=1" in url
+    assert "response_type=code" in url
+
+
 def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
     class FakeTimeoutError(Exception):
         pass
@@ -85,6 +98,13 @@ def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
             self.page.calls.append(("wait_for", self.selector, timeout))
             if self.selector == "[data-testid='auth-accept']":
                 raise FakeTimeoutError()
+            if (
+                self.selector
+                == "#password, [data-testid='login-password'], input[type='password'], input[autocomplete='current-password']"
+                and self.page.password_wait_attempts == 0
+            ):
+                self.page.password_wait_attempts += 1
+                raise FakeTimeoutError()
 
         def fill(self, value):
             self.page.calls.append(("fill", self.selector, value))
@@ -96,6 +116,7 @@ def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
         def __init__(self):
             self.calls = []
             self.url = "https://example.com/callback?code=test-code"
+            self.password_wait_attempts = 0
 
         def goto(self, url, wait_until=None):
             self.calls.append(("goto", url, wait_until))
@@ -163,12 +184,17 @@ def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
     assert ("locator", "#username, [data-testid='login-username']") in page.calls
     assert (
         "locator",
-        "#password, [data-testid='login-password'], input[type='password']",
+        "#password, [data-testid='login-password'], input[type='password'], input[autocomplete='current-password']",
     ) in page.calls
     assert ("fill", "#username, [data-testid='login-username']", "sergio") in page.calls
     assert (
+        "wait_for",
+        "#password, [data-testid='login-password'], input[type='password'], input[autocomplete='current-password']",
+        2_000,
+    ) in page.calls
+    assert (
         "fill",
-        "#password, [data-testid='login-password'], input[type='password']",
+        "#password, [data-testid='login-password'], input[type='password'], input[autocomplete='current-password']",
         "secret",
     ) in page.calls
     assert ("wait_for_url", "https://example.com/callback**", 90_000) in page.calls
