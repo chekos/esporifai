@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import typer
 from rich import print
 
-from .config import get_settings
+from .config import get_authorize_url_inputs, get_settings
 from .api import (
     get_track_audio_analysis,
     get_user_top_items,
@@ -93,7 +93,8 @@ def auth(
         return None
 
     if url:
-        print(build_auth_code_url(get_settings()))
+        client_id, redirect_uri = get_authorize_url_inputs()
+        print(build_auth_code_url(client_id=client_id, redirect_uri=redirect_uri))
         return None
 
     if code:

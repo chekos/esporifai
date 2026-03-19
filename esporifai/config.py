@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import blake2b
+from urllib.parse import unquote, urlparse
 
 from dotenv import dotenv_values
 
@@ -22,6 +23,30 @@ def _require(config: dict[str, str], key: str) -> str:
     if value:
         return value
     raise ConfigError(f"Missing required configuration: {key}")
+
+
+def _normalize_redirect_uri(value: str) -> str:
+    normalized = value.strip()
+
+    for _ in range(3):
+        parsed = urlparse(normalized)
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            return normalized
+
+        decoded = unquote(normalized)
+        if decoded == normalized:
+            return normalized
+
+        normalized = decoded
+
+    return normalized
+
+
+def get_authorize_url_inputs() -> tuple[str, str]:
+    config = _load_environment()
+    return _require(config, "SPOTIFY_CLIENT_ID"), _normalize_redirect_uri(
+        _require(config, "REDIRECT_URI")
+    )
 
 
 @dataclass(frozen=True)
@@ -65,7 +90,7 @@ class Settings:
         return cls(
             spotify_client_id=_require(config, "SPOTIFY_CLIENT_ID"),
             spotify_auth_string=_require(config, "SPOTIFY_AUTH_STRING"),
-            redirect_uri=_require(config, "REDIRECT_URI"),
+            redirect_uri=_normalize_redirect_uri(_require(config, "REDIRECT_URI")),
             username=username,
             password=password,
             spotify_refresh_token=spotify_refresh_token,

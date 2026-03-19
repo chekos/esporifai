@@ -1,0 +1,68 @@
+name: Bootstrap Refresh Token
+
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: Spotify authorization code from the callback URL
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    env:
+      SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+      SPOTIFY_AUTH_STRING: ${{ secrets.SPOTIFY_AUTH_STRING }}
+      REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
+      AUTH_CODE: ${{ inputs.code }}
+    steps:
+    - name: Exchange authorization code
+      run: |
+        python - <<'PY'
+        import base64
+        import json
+        import os
+        import urllib.parse
+        import urllib.request
+        from pathlib import Path
+
+        url = "https://accounts.spotify.com/api/token"
+        payload = urllib.parse.urlencode(
+            {
+                "grant_type": "authorization_code",
+                "code": os.environ["AUTH_CODE"],
+                "redirect_uri": os.environ["REDIRECT_URI"],
+            }
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "Authorization": f"Basic {os.environ['SPOTIFY_AUTH_STRING']}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            method="POST",
+        )
+
+        with urllib.request.urlopen(request) as response:
+            token_info = json.load(response)
+
+        refresh_token = token_info.get("refresh_token")
+        if not refresh_token:
+            raise SystemExit(
+                f"Spotify did not return a refresh token: {json.dumps(token_info)}"
+            )
+
+        Path("bootstrap-refresh-token.txt").write_text(refresh_token)
+        print("Refresh token artifact created.")
+        PY
+
+    - name: Upload refresh token artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: spotify-refresh-token
+        path: bootstrap-refresh-token.txt

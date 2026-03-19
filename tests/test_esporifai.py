@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from typer.testing import CliRunner
@@ -115,6 +116,39 @@ def test_build_auth_code_url_uses_standard_authorize_query(monkeypatch):
     assert "client_id=client-id" in url
     assert "redirect_uri=https%3A%2F%2Fexample.com%2Fcallback" in url
     assert "response_type=code" in url
+
+
+def test_build_auth_code_url_normalizes_preencoded_redirect_uri(monkeypatch):
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("SPOTIFY_AUTH_STRING", "auth-string")
+    monkeypatch.setenv("REDIRECT_URI", "https%3A%2F%2Fexample.com%2Fcallback%2F")
+    monkeypatch.setenv("USERNAME", "sergio")
+    monkeypatch.setenv("PASSWORD", "secret")
+
+    url = utils.build_auth_code_url(get_settings())
+
+    assert "redirect_uri=https%3A%2F%2Fexample.com%2Fcallback%2F" in url
+    assert "redirect_uri=https%253A" not in url
+
+
+def test_auth_url_command_only_requires_client_id_and_redirect_uri(monkeypatch):
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("REDIRECT_URI", "https%3A%2F%2Fexample.com%2Fcallback%2F")
+    monkeypatch.delenv("SPOTIFY_AUTH_STRING", raising=False)
+    monkeypatch.delenv("USERNAME", raising=False)
+    monkeypatch.delenv("PASSWORD", raising=False)
+    monkeypatch.delenv("SPOTIFY_USERNAME", raising=False)
+    monkeypatch.delenv("SPOTIFY_PASSWORD", raising=False)
+    monkeypatch.delenv("SPOTIFY_REFRESH_TOKEN", raising=False)
+
+    result = runner.invoke(cli.cli, ["auth", "--url"])
+    output = "".join(result.output.splitlines())
+    query = parse_qs(urlparse(output).query)
+
+    assert result.exit_code == 0
+    assert query["response_type"] == ["code"]
+    assert query["redirect_uri"] == ["https://example.com/callback/"]
+    assert "redirect_uri=https%253A" not in output
 
 
 def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):

@@ -47,13 +47,27 @@ def build_auth_payload(code: str, settings: Settings | None = None) -> dict:
     }
 
 
-def build_auth_code_url(settings: Settings) -> str:
+def build_auth_code_url(
+    settings: Settings | None = None,
+    *,
+    client_id: str | None = None,
+    redirect_uri: str | None = None,
+) -> str:
+    if settings is not None:
+        client_id = settings.spotify_client_id
+        redirect_uri = settings.redirect_uri
+
+    if not client_id or not redirect_uri:
+        raise ValueError(
+            "build_auth_code_url requires either settings or client_id and redirect_uri"
+        )
+
     return (
         f"{SPOTIFY_AUTH_URL}?"
         + urlencode(
             {
-                "client_id": settings.spotify_client_id,
-                "redirect_uri": settings.redirect_uri,
+                "client_id": client_id,
+                "redirect_uri": redirect_uri,
                 "scope": SCOPE,
                 "response_type": "code",
             }
