@@ -62,7 +62,7 @@ jobs:
         PY
 
     - name: Upload refresh token artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: spotify-refresh-token
         path: bootstrap-refresh-token.txt
