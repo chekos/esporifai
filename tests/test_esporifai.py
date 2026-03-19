@@ -197,7 +197,10 @@ def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
         "#password, [data-testid='login-password'], input[type='password'], input[autocomplete='current-password']",
         "secret",
     ) in page.calls
-    assert ("wait_for_url", "https://example.com/callback**", 90_000) in page.calls
+    assert any(
+        call == ("wait_for_url", "https://example.com/callback**", 1_000)
+        for call in page.calls
+    )
     assert utils.AUTH_FILE.exists()
 
 

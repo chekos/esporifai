@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import json
+from time import monotonic
 from datetime import datetime as dt
 from datetime import timedelta
 from pathlib import Path
@@ -85,6 +86,27 @@ def is_expired(expires_at):
     return now > dt.fromisoformat(expires_at)
 
 
+def maybe_click_consent(page) -> bool:
+    candidates = [
+        page.locator("[data-testid='auth-accept']").first,
+        page.get_by_role(
+            "button",
+            name=re.compile(r"^(agree|accept|authorize|allow|continue)$", re.I),
+        ).first,
+    ]
+
+    for candidate in candidates:
+        try:
+            candidate.wait_for(timeout=1_000)
+        except PlaywrightTimeoutError:
+            continue
+
+        candidate.click()
+        return True
+
+    return False
+
+
 def retrieve_code(write: bool = False, settings: Settings | None = None):
     settings = settings or get_settings()
     with sync_playwright() as p:
@@ -117,17 +139,21 @@ def retrieve_code(write: bool = False, settings: Settings | None = None):
             password.fill(settings.password)
             page.locator(login_button_selector).first.click()
 
-            try:
-                auth_accept = page.locator("[data-testid='auth-accept']").first
-                auth_accept.wait_for(timeout=settings.consent_timeout_ms)
-                auth_accept.click()
-            except PlaywrightTimeoutError:
-                pass
+            redirect_pattern = f"{settings.redirect_uri}**"
+            deadline = monotonic() + (settings.redirect_timeout_ms / 1_000)
 
-            page.wait_for_url(
-                f"{settings.redirect_uri}**",
-                timeout=settings.redirect_timeout_ms,
-            )
+            while monotonic() < deadline:
+                try:
+                    page.wait_for_url(redirect_pattern, timeout=1_000)
+                    break
+                except PlaywrightTimeoutError:
+                    maybe_click_consent(page)
+            else:
+                raise RuntimeError(
+                    "Spotify authorization did not redirect back to the configured "
+                    f"redirect URI within {settings.redirect_timeout_ms}ms. "
+                    f"Last page URL: {page.url}"
+                )
 
             code = parse_qs(urlparse(page.url).query).get("code", [None])[0]
             if code is None:
