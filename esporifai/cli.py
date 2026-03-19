@@ -2,11 +2,12 @@ from pathlib import Path
 from datetime import datetime as dt
 import json
 from typing import List
+from zoneinfo import ZoneInfo
 
 import typer
 from rich import print
-from pytz import timezone
 
+from .config import get_settings
 from .api import (
     get_track_audio_analysis,
     get_user_top_items,
@@ -28,6 +29,7 @@ from .constants import (
 )
 from .utils import (
     auth_check,
+    get_auth_status,
     handle_authorization,
     handle_id_file,
     handle_response,
@@ -35,14 +37,26 @@ from .utils import (
 )
 
 
+token_info = None
+
+
 def init():
     if not APP_DIR.exists():
-        APP_DIR.mkdir()
-    global token_info
-    token_info = handle_authorization(save_files=True)
+        APP_DIR.mkdir(parents=True)
 
 
 cli = typer.Typer(callback=init, help=f"""{__app_name__} version {__version__}""")
+
+
+def ensure_token_info(force: bool = False):
+    global token_info
+    if force or token_info is None:
+        token_info = handle_authorization(
+            save_files=True,
+            force=force,
+            settings=get_settings(),
+        )
+    return token_info
 
 
 @cli.command()
@@ -51,13 +65,19 @@ def auth(
     check: bool = typer.Option(
         False, "--check", help="Check if auth credentials are saved."
     ),
+    status: bool = typer.Option(
+        False, "--status", help="Show the current auth artifact and token status."
+    ),
 ):
     if check:
         print(auth_check())
         return None
 
-    global token_info
-    token_info = handle_authorization(save_files=True, force=force)
+    if status:
+        print(json.dumps(get_auth_status(), indent=2, default=str))
+        return None
+
+    ensure_token_info(force=force)
 
 
 @cli.command()
@@ -87,6 +107,7 @@ def get_top(
     ),
     trim: bool = typer.Option(False, "--trim/--full"),
 ):
+    token_info = ensure_token_info()
     response = handle_response(
         get_user_top_items(
             access_token=token_info["access_token"],
@@ -126,8 +147,9 @@ def get_recently_played(
     ),
     trim: bool = typer.Option(False, "--trim/--full"),
 ):
+    token_info = ensure_token_info()
     # transform date from timestamp to unix timestamp in milliseconds
-    timestamp = timestamp.replace(tzinfo=timezone(time_zone))
+    timestamp = timestamp.replace(tzinfo=ZoneInfo(time_zone))
     timestamp = int(timestamp.timestamp()) * 1_000
 
     response = handle_response(
@@ -164,6 +186,7 @@ def analyze_track(
         help="A newline-delimited file with a list of track IDs. One per line.",
     ),
 ):
+    token_info = ensure_token_info()
     if track_id != "-":
         response = handle_response(
             get_track_audio_analysis(
@@ -222,6 +245,7 @@ def get_artists(
         allow_dash=True,
     ),
 ):
+    token_info = ensure_token_info()
     if len(artists_ids) == 1:
         response = handle_response(
             get_artist(
@@ -262,6 +286,7 @@ def get_tracks(
         allow_dash=True,
     ),
 ):
+    token_info = ensure_token_info()
     if len(track_ids) == 1:
         response = handle_response(
             get_track(
@@ -310,6 +335,7 @@ def get_audio_features(
         help="A newline-delimited file with a list of track IDs. One per line.",
     ),
 ):
+    token_info = ensure_token_info()
     if track_ids[0] != "-":
         if len(track_ids) == 1:
             response = handle_response(

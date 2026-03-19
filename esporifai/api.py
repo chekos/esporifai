@@ -1,6 +1,19 @@
+from __future__ import annotations
+
+from typing import Sequence
+
 import httpx
 
 from .constants import SPOTIFY_API_BASE_URL
+
+
+def spotify_get(access_token: str, path: str, params: dict | None = None) -> httpx.Response:
+    return httpx.get(
+        url=f"{SPOTIFY_API_BASE_URL}{path}",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params=params,
+        timeout=30.0,
+    )
 
 
 def get_track(
@@ -16,17 +29,12 @@ def get_track(
     artist_id : str
         Track's ID.
     """
-    url = f"{SPOTIFY_API_BASE_URL}/tracks/{track_id}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    response = httpx.get(url=url, headers=headers)
-
-    return response
+    return spotify_get(access_token, f"/tracks/{track_id}")
 
 
 def get_several_tracks(
     access_token: str,
-    track_ids: list,
+    track_ids: Sequence[str],
 ):
     """Get Spotify catalog information for multiple tracks based on their Spotify IDs.
 
@@ -37,13 +45,7 @@ def get_several_tracks(
     artist_id : str
         Track's ID.
     """
-    url = f"{SPOTIFY_API_BASE_URL}/tracks"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    query_params = {"ids": ",".join(track_ids)}
-
-    response = httpx.get(url=url, headers=headers, params=query_params)
-
-    return response
+    return spotify_get(access_token, "/tracks", {"ids": ",".join(track_ids)})
 
 
 def get_artist(
@@ -59,17 +61,12 @@ def get_artist(
     artist_id : str
         Track's ID.
     """
-    url = f"{SPOTIFY_API_BASE_URL}/artists/{artist_id}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    response = httpx.get(url=url, headers=headers)
-
-    return response
+    return spotify_get(access_token, f"/artists/{artist_id}")
 
 
 def get_several_artists(
     access_token: str,
-    artist_ids: list,
+    artist_ids: Sequence[str],
 ):
     """Get Spotify catalog information for several artists based on their Spotify IDs.
 
@@ -80,13 +77,7 @@ def get_several_artists(
     artist_id : str
         Track's ID.
     """
-    url = f"{SPOTIFY_API_BASE_URL}/artists"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    query_params = {"ids": ",".join(artist_ids)}
-
-    response = httpx.get(url=url, headers=headers, params=query_params)
-
-    return response
+    return spotify_get(access_token, "/artists", {"ids": ",".join(artist_ids)})
 
 
 def get_track_audio_analysis(
@@ -103,12 +94,7 @@ def get_track_audio_analysis(
     track_id : str
         Track's ID.
     """
-    url = f"{SPOTIFY_API_BASE_URL}/audio-analysis/{track_id}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    response = httpx.get(url=url, headers=headers)
-
-    return response
+    return spotify_get(access_token, f"/audio-analysis/{track_id}")
 
 
 def get_user_top_items(
@@ -136,17 +122,12 @@ def get_user_top_items(
         "medium_term" (approximately last 6 months), "short_term" (approximately last 4 weeks).
         Default: medium_term
     """
-    url = f"{SPOTIFY_API_BASE_URL}/me/top/{item_type}"
     params = {
         "limit": limit,
         "offset": offset,
         "time_range": time_range,
     }
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    response = httpx.get(url=url, params=params, headers=headers)
-
-    return response
+    return spotify_get(access_token, f"/me/top/{item_type}", params)
 
 
 def get_user_recently_played(
@@ -169,16 +150,11 @@ def get_user_recently_played(
     limit : int, optional
         The maximum number of items to return, by default 20
     """
-    url = f"{SPOTIFY_API_BASE_URL}/me/player/recently-played"
     params = {
         direction: timestamp,
         "limit": limit,
     }
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    response = httpx.get(url=url, params=params, headers=headers)
-
-    return response
+    return spotify_get(access_token, "/me/player/recently-played", params)
 
 
 def get_track_audio_features(
@@ -194,17 +170,12 @@ def get_track_audio_features(
     track_id : str
         Track's ID.
     """
-    url = f"{SPOTIFY_API_BASE_URL}/audio-features/{track_id}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    response = httpx.get(url=url, headers=headers)
-
-    return response
+    return spotify_get(access_token, f"/audio-features/{track_id}")
 
 
 def get_several_tracks_audio_features(
     access_token: str,
-    track_ids: list,
+    track_ids: Sequence[str],
 ):
     """Get audio features for multiple tracks based on their Spotify IDs.
 
@@ -215,10 +186,4 @@ def get_several_tracks_audio_features(
     track_ids : list
         List of track IDs.
     """
-    url = f"{SPOTIFY_API_BASE_URL}/audio-features"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    query_params = {"ids": ",".join(track_ids)}
-
-    response = httpx.get(url=url, headers=headers, params=query_params)
-
-    return response
+    return spotify_get(access_token, "/audio-features", {"ids": ",".join(track_ids)})

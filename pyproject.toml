@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "esporifai"
+version = "0.3.0"
+description = "A modern CLI for collecting Spotify listening data."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+authors = [
+  { name = "Sergio Sánchez Zavala" }
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Utilities"
+]
+dependencies = [
+  "httpx>=0.28,<0.29",
+  "playwright>=1.58.0",
+  "python-dotenv>=1.0,<2.0",
+  "rich>=13.9,<14.0",
+  "typer>=0.16,<1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/chekos/esporifai"
+Issues = "https://github.com/chekos/esporifai/issues"
+CI = "https://github.com/chekos/esporifai/actions"
+Changelog = "https://github.com/chekos/esporifai/releases"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+  "pytest-dotenv>=0.5.2",
+]
+dev = [
+  "build>=1.2.2",
+  "pytest>=8.0",
+  "pytest-dotenv>=0.5.2",
+  "ruff>=0.11.0",
+  "twine>=6.1.0",
+]
+
+[project.scripts]
+esporifai = "esporifai.cli:cli"
+
+[tool.setuptools]
+packages = ["esporifai"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+markers = [
+  "integration: hits the live Spotify API or browser auth flow",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

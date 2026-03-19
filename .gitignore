@@ -10,3 +10,4 @@ venv
 .env
 .vscode/
 build/
+dist/
