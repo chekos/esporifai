@@ -107,6 +107,37 @@ def maybe_click_consent(page) -> bool:
     return False
 
 
+def describe_page_state(page) -> str:
+    details = [f"Last page URL: {page.url}"]
+
+    try:
+        title = page.title()
+    except Exception:
+        title = None
+    if title:
+        details.append(f"Page title: {title}")
+
+    try:
+        alerts = [
+            " ".join(text.split())
+            for text in page.locator("[role='alert']").all_inner_texts()
+            if text.strip()
+        ]
+    except Exception:
+        alerts = []
+    if alerts:
+        details.append(f"Visible alerts: {' | '.join(alerts[:3])}")
+
+    try:
+        body_text = " ".join(page.locator("body").inner_text(timeout=1_000).split())
+    except Exception:
+        body_text = ""
+    if body_text:
+        details.append(f"Body snippet: {body_text[:500]}")
+
+    return " ".join(details)
+
+
 def retrieve_code(write: bool = False, settings: Settings | None = None):
     settings = settings or get_settings()
     with sync_playwright() as p:
@@ -152,7 +183,7 @@ def retrieve_code(write: bool = False, settings: Settings | None = None):
                 raise RuntimeError(
                     "Spotify authorization did not redirect back to the configured "
                     f"redirect URI within {settings.redirect_timeout_ms}ms. "
-                    f"Last page URL: {page.url}"
+                    + describe_page_state(page)
                 )
 
             code = parse_qs(urlparse(page.url).query).get("code", [None])[0]
