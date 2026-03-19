@@ -36,6 +36,15 @@ def require_spotify_env():
         pytest.skip(f"Missing Spotify integration env vars: {', '.join(missing)}")
 
 
+def skip_if_audio_endpoint_forbidden(result):
+    output = " ".join(result.output.split()).replace('\\"', '"')
+    condensed = output.replace(" ", "")
+    if "Error403:" in condensed and '"status":403' in condensed:
+        pytest.skip(
+            "Spotify development-mode apps return 403 for audio analysis/features endpoints."
+        )
+
+
 @pytest.mark.parametrize(
     "options",
     (["--help"],),
@@ -356,12 +365,22 @@ def test_handle_authorization_force_still_prefers_refresh_token_env(monkeypatch)
     assert token_info["refresh_token"] == "refresh-token"
 
 
+def test_skip_if_audio_endpoint_forbidden_skips_on_spotify_403():
+    class Result:
+        exit_code = 1
+        output = 'Error 403: {\n  "error" : {\n    "status" : 403\n  }\n}\n'
+
+    with pytest.raises(pytest.skip.Exception):
+        skip_if_audio_endpoint_forbidden(Result())
+
+
 @integration
 def test_analyze_track():
     require_spotify_env()
     result = runner.invoke(
         cli.cli, ["analyze-track", "4hPl8CtzHoh9LMmKTFyiPl", "--output", "-"]
     )
+    skip_if_audio_endpoint_forbidden(result)
     output = json.loads(result.output)
     assert result.exit_code == 0
     assert "track" in output.keys()
@@ -377,7 +396,7 @@ def test_analyze_tracks(tmp_path):
         file.write("2pEa0vCzu86pDLz9KPDAcg\n")  # Alivianado
         file.write("2O8aEi9SpwobvFLvKHvIl3\n")  # Estamos Bien
         file.write("1XReTPKaJypMIXSvOW9YXV\n")  # Semillas
-    runner.invoke(
+    result = runner.invoke(
         cli.cli,
         [
             "analyze-track",
@@ -388,6 +407,7 @@ def test_analyze_tracks(tmp_path):
             f"{tmp_path}",
         ],
     )
+    skip_if_audio_endpoint_forbidden(result)
     analysis_files = sorted([file.name for file in tmp_path.glob("*.json")])
     assert analysis_files == [
         "1XReTPKaJypMIXSvOW9YXV.json",
@@ -485,6 +505,7 @@ def test_get_audio_features():
             "-",
         ],
     )
+    skip_if_audio_endpoint_forbidden(result)
     output = json.loads(result.output)
     assert result.exit_code == 0
     assert "audio_features" in output.keys()
