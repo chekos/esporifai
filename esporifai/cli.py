@@ -42,6 +42,13 @@ from .utils import (
     write_json,
 )
 from .constants import AUTH_FILE
+from .history import (
+    HistoryInputKind,
+    load_json,
+    normalize_history_payload,
+    sorted_jsonl,
+    write_jsonl,
+)
 
 
 token_info = None
@@ -194,6 +201,53 @@ def get_recently_played(
 
     if output == Path("-"):
         print(json.dumps(data, default=str))
+
+
+@cli.command()
+def normalize_history(
+    kind: HistoryInputKind = typer.Argument(
+        ..., case_sensitive=False, help="Input shape to normalize."
+    ),
+    input_path: Path = typer.Option(
+        ...,
+        "--input",
+        "-i",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="JSON file to read.",
+    ),
+    output: Path = typer.Option(
+        Path("-"),
+        "--output",
+        "-o",
+        help="JSONL file to write normalized events to. Use '-' for stdout.",
+        allow_dash=True,
+    ),
+    source: str = typer.Option(
+        "spotify_history",
+        "--source",
+        help="Source label to store on normalized records.",
+    ),
+    catalog_dir: Optional[Path] = typer.Option(
+        None,
+        "--catalog-dir",
+        help="Optional directory for track, album, and artist catalog JSONL files.",
+    ),
+):
+    payload = load_json(input_path)
+    history = normalize_history_payload(payload, kind, source)
+
+    if output == Path("-"):
+        typer.echo(sorted_jsonl(history.event_records()), nl=False)
+    else:
+        write_jsonl(output, history.event_records())
+        typer.echo(json.dumps(history.as_summary(), sort_keys=True))
+
+    if catalog_dir is not None:
+        write_jsonl(catalog_dir / "track_catalog.jsonl", history.track_records())
+        write_jsonl(catalog_dir / "album_catalog.jsonl", history.album_records())
+        write_jsonl(catalog_dir / "artist_catalog.jsonl", history.artist_records())
 
 
 @cli.command()

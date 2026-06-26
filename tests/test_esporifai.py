@@ -7,6 +7,7 @@ import pytest
 from typer.testing import CliRunner
 from esporifai import cli, __app_name__, __version__
 from esporifai.config import get_settings
+from esporifai.history import HistoryInputKind, normalize_history_payload
 from esporifai import utils
 
 runner = CliRunner()
@@ -290,6 +291,124 @@ def test_retrieve_code_handles_two_step_login(monkeypatch, tmp_path):
         for call in page.calls
     )
     assert utils.AUTH_FILE.exists()
+
+
+def test_normalize_recently_played_payload_extracts_catalogs():
+    payload = {
+        "items": [
+            {
+                "played_at": "2026-06-26T12:00:00.000Z",
+                "track": {
+                    "id": "track123",
+                    "name": "Track Name",
+                    "duration_ms": 180000,
+                    "artists": [
+                        {"id": "artist1", "name": "Artist One", "type": "artist"}
+                    ],
+                    "album": {
+                        "id": "album1",
+                        "name": "Album One",
+                        "artists": [
+                            {"id": "artist1", "name": "Artist One", "type": "artist"}
+                        ],
+                        "release_date": "2026",
+                    },
+                },
+            }
+        ]
+    }
+
+    history = normalize_history_payload(
+        payload, HistoryInputKind.recently_played, "api_source"
+    )
+
+    assert history.event_records() == [
+        {
+            "played_at": "2026-06-26T12:00:00.000Z",
+            "track_id": "track123",
+            "sources": ["api_source"],
+        }
+    ]
+    assert history.track_records()[0]["metadata_status"] == "complete"
+    assert history.track_records()[0]["artist_ids"] == ["artist1"]
+    assert history.album_records()[0]["id"] == "album1"
+    assert history.artist_records()[0]["name"] == "Artist One"
+
+
+def test_normalize_export_payload_preserves_export_only_track_ids():
+    payload = [
+        {
+            "ts": "2018-01-10T19:46:56Z",
+            "spotify_track_uri": "spotify:track:exporttrack123",
+            "master_metadata_track_name": "Export Song",
+            "master_metadata_album_artist_name": "Export Artist",
+            "master_metadata_album_album_name": "Export Album",
+        },
+        {"ts": "2018-01-10T20:00:00Z"},
+    ]
+
+    history = normalize_history_payload(
+        payload, HistoryInputKind.export, "export_source"
+    )
+
+    assert history.event_records() == [
+        {
+            "played_at": "2018-01-10T19:46:56Z",
+            "track_id": "exporttrack123",
+            "sources": ["export_source"],
+        }
+    ]
+    assert history.track_records()[0]["metadata_status"] == "partial"
+    assert history.track_records()[0]["artist_names"] == ["Export Artist"]
+    assert history.skipped_rows == 1
+
+
+def test_normalize_history_command_writes_jsonl_and_catalogs(tmp_path):
+    payload = {
+        "items": [
+            {
+                "played_at": "2026-06-26T12:00:00.000Z",
+                "track": {
+                    "id": "track123",
+                    "name": "Track Name",
+                    "artists": [{"id": "artist1", "name": "Artist One"}],
+                    "album": {"id": "album1", "name": "Album One"},
+                },
+            }
+        ]
+    }
+    input_path = tmp_path / "recently_played.json"
+    output_path = tmp_path / "events.jsonl"
+    catalog_dir = tmp_path / "catalog"
+    input_path.write_text(json.dumps(payload))
+
+    result = runner.invoke(
+        cli.cli,
+        [
+            "normalize-history",
+            "recently-played",
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--source",
+            "api_source",
+            "--catalog-dir",
+            str(catalog_dir),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(output_path.read_text()) == {
+        "played_at": "2026-06-26T12:00:00.000Z",
+        "track_id": "track123",
+        "sources": ["api_source"],
+    }
+    assert (
+        json.loads((catalog_dir / "track_catalog.jsonl").read_text())["id"]
+        == "track123"
+    )
+    assert json.loads(result.output)["events"] == 1
 
 
 def test_auth_status_reports_saved_token(monkeypatch, tmp_path):
