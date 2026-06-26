@@ -36,6 +36,15 @@ For help,
 
     esporifai get-recently-played --help
 
+### Normalize history files
+
+To convert Spotify API or account-export history files into deterministic JSONL:
+
+    esporifai normalize-history recently-played --input recently_played.json --output events.jsonl
+    esporifai normalize-history export --input streaming_history.json --output events.jsonl --catalog-dir catalog
+
+`recently-played` accepts either the full Spotify API response object or a trimmed `items` array. `export` accepts Spotify account export rows with `ts`/`spotify_track_uri` or `played_at`/`id` fields.
+
 ### Authentication
 
 `esporifai` uses Spotify authorization code flow and stores auth artifacts in your app config directory.
