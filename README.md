@@ -5,7 +5,10 @@
 [![Tests](https://github.com/chekos/esporifai/workflows/Test/badge.svg)](https://github.com/chekos/esporifai/actions?query=workflow%3ATest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/chekos/esporifai/blob/master/LICENSE)
 
-A modern CLI for collecting Spotify listening data from the Spotify Web API.
+A modern CLI for collecting and normalizing Spotify listening data from the
+Spotify Web API. In the Spotify repo family, this is the reusable package used
+by automation; canonical public data lives in `chekos/my-spotify-data`, and
+rendered analytics live in `chekos/my-spotify-analytics`.
 
 ## Installation
 
@@ -15,7 +18,7 @@ Install this tool using `pip`:
 
 For development:
 
-    python -m pip install -e '.[dev]'
+    uv sync --python 3.12 --extra dev
 
 ## Usage
 
@@ -86,20 +89,16 @@ Optional runtime tuning:
 
 ## Development
 
-To contribute to this tool, first checkout the code. Then create a new virtual environment:
+To contribute to this tool, first checkout the code. Then install the
+development dependencies:
 
     cd esporifai
-    python -m venv venv
-    source venv/bin/activate
-
-Now install the dependencies and test dependencies:
-
-    python -m pip install -e '.[dev]'
+    uv sync --python 3.12 --extra dev
 
 To run the tests:
 
-    python -m pytest -m "not integration"
+    uv run --python 3.12 --extra test python -m pytest -m "not integration"
 
 To run the live Spotify integration tests:
 
-    python -m pytest -m integration
+    uv run --python 3.12 --extra test python -m pytest -m integration
